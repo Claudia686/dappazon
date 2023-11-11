@@ -1,4 +1,6 @@
-const { expect } = require("chai")
+const {
+  expect
+} = require("chai")
 
 const tokens = (n) => {
   return ethers.utils.parseUnits(n.toString(), 'ether')
@@ -14,13 +16,11 @@ const STOCK = 5
 
 describe("Dappazon", () => {
   let dappazon
-  let deployer, buyer
+  let deployer, buyer, hacker
 
   beforeEach(async () => {
-    // Setup accounts
-    [deployer, buyer] = await ethers.getSigners()
+    [deployer, buyer, hacker] = await ethers.getSigners()
 
-    // Deploy contract
     const Dappazon = await ethers.getContractFactory("Dappazon")
     dappazon = await Dappazon.deploy()
   })
@@ -32,29 +32,38 @@ describe("Dappazon", () => {
   })
 
   describe("Listing", () => {
-    let transaction
+    describe("Success", async () => {
+      let transaction
 
-    beforeEach(async () => {
-      transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
-      await transaction.wait()
+      beforeEach(async () => {
+        transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
+        await transaction.wait()
+      })
+
+      it("Returns item attributes", async () => {
+        const item = await dappazon.items(ID)
+
+        expect(item.id).to.equal(ID)
+        expect(item.name).to.equal(NAME)
+        expect(item.category).to.equal(CATEGORY)
+        expect(item.image).to.equal(IMAGE)
+        expect(item.cost).to.equal(COST)
+        expect(item.rating).to.equal(RATING)
+        expect(item.stock).to.equal(STOCK)
+      })
+
+      it("Emits List event", () => {
+        expect(transaction).to.emit(dappazon, "List")
+      })
     })
 
-    it("Returns item attributes", async () => {
-      const item = await dappazon.items(ID)
-
-      expect(item.id).to.equal(ID)
-      expect(item.name).to.equal(NAME)
-      expect(item.category).to.equal(CATEGORY)
-      expect(item.image).to.equal(IMAGE)
-      expect(item.cost).to.equal(COST)
-      expect(item.rating).to.equal(RATING)
-      expect(item.stock).to.equal(STOCK)
-    })
-
-    it("Emits List event", () => {
-      expect(transaction).to.emit(dappazon, "List")
+    describe("Failure", async () => {
+      it("Reverts non-owner fron listing", async () => {
+        await expect(dappazon.connect(hacker).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)).to.be.reverted
+      })
     })
   })
+
 
   describe("Buying", () => {
     let transaction
@@ -63,7 +72,9 @@ describe("Dappazon", () => {
       transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
       await transaction.wait()
 
-      transaction = await dappazon.connect(buyer).buy(ID, { value: COST })
+      transaction = await dappazon.connect(buyer).buy(ID, {
+        value: COST
+      })
       await transaction.wait()
     })
 
@@ -71,6 +82,7 @@ describe("Dappazon", () => {
       const result = await dappazon.orderCount(buyer.address)
       expect(result).to.equal(1)
     })
+
 
     it("Adds the order", async () => {
       const order = await dappazon.orders(buyer.address, 1)
@@ -93,21 +105,23 @@ describe("Dappazon", () => {
     let balanceBefore
 
     beforeEach(async () => {
-       let transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
+      let transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
       await transaction.wait()
 
-      transaction = await dappazon.connect(buyer).buy(ID, { value: COST })
+      transaction = await dappazon.connect(buyer).buy(ID, {
+        value: COST
+      })
       await transaction.wait()
-      
+
       balanceBefore = await ethers.provider.getBalance(deployer.address)
-     
+
       transaction = await dappazon.connect(deployer).withdraw()
-      await transaction.wait() 
+      await transaction.wait()
     })
 
     it('Updates the owner balance', async () => {
       const balanceAfter = await ethers.provider.getBalance(deployer.address)
-      expect(balanceAfter).to.be.greaterThan(balanceBefore)  
+      expect(balanceAfter).to.be.greaterThan(balanceBefore)
     })
 
     it('Updates the contract balance', async () => {

@@ -99,6 +99,24 @@ describe("Dappazon", () => {
         expect(transaction).to.emit(dappazon, "Buy")
       })
     })
+    describe("Failure", async () => {
+      it('Should fail if buyer sends insufficient funds', async () => {
+        const itemId = 1
+        const item = dappazon.items(itemId)
+
+        const insufficientFunds = item.cost - 1
+        await expect(dappazon.connect(buyer).buy(itemId, {
+          value: insufficientFunds
+        })).to.be.reverted
+      })
+       it('Should fail if item is out of stock', async () => {
+        const itemId = 2
+        const stockId = 0
+        await expect(dappazon.connect(buyer).buy(itemId, {
+          value: stockId
+        })).to.be.reverted
+      })
+    })
   })
 
   describe("Withdrawing", () => {

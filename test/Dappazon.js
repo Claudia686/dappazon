@@ -64,6 +64,28 @@ describe("Dappazon", () => {
     })
   })
 
+  describe("View Item", () => {
+    describe("Success", async () => {
+      beforeEach(async () => {
+        transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
+        await transaction.wait()
+      })
+
+      it("should return the correct item for a valid ID", async () => {
+        const itemIdToTest = 1;
+        const result = await dappazon.viewItem(itemIdToTest);
+        expect(result.id).to.equal(itemIdToTest);
+      })
+    })
+
+    describe("Failure", async () => {
+      it("Reverted with invalid id", async () => {
+        const invalidItemId = 100
+        await expect(dappazon.viewItem(invalidItemId)).to.be.reverted
+      })
+    })
+  })
+
   describe("Buying", () => {
     let transaction
 

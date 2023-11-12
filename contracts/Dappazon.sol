@@ -59,6 +59,12 @@ contract Dappazon {
         emit List(_name, _cost, _stock);
     }
 
+    function viewItem(uint256 _id) public view returns (Item memory) {
+        require(items[_id].id != 0);
+        return items[_id];
+    }
+
+
     function buy(uint256 _id) public payable {
         Item memory item = items[_id];
         require(msg.value >= item.cost);
@@ -76,5 +82,5 @@ contract Dappazon {
     function withdraw() public onlyOwner {
         (bool success, ) = owner.call{value: address(this).balance}("");
         require(success);
-    }
+}
 }

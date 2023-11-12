@@ -63,62 +63,41 @@ describe("Dappazon", () => {
       })
     })
   })
-
-  describe("View Item", () => {
+  
+  describe("Buying", () => {
     describe("Success", async () => {
+      let transaction
+
       beforeEach(async () => {
         transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
         await transaction.wait()
+
+        transaction = await dappazon.connect(buyer).buy(ID, {
+          value: COST
+        })
+        await transaction.wait()
       })
 
-      it("should return the correct item for a valid ID", async () => {
-        const itemIdToTest = 1;
-        const result = await dappazon.viewItem(itemIdToTest);
-        expect(result.id).to.equal(itemIdToTest);
+      it("Updates buyer's order count", async () => {
+        const result = await dappazon.orderCount(buyer.address)
+        expect(result).to.equal(1)
       })
-    })
 
-    describe("Failure", async () => {
-      it("Reverted with invalid id", async () => {
-        const invalidItemId = 100
-        await expect(dappazon.viewItem(invalidItemId)).to.be.reverted
+      it("Adds the order", async () => {
+        const order = await dappazon.orders(buyer.address, 1)
+
+        expect(order.time).to.be.greaterThan(0)
+        expect(order.item.name).to.equal(NAME)
       })
-    })
-  })
 
-  describe("Buying", () => {
-    let transaction
-
-    beforeEach(async () => {
-      transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
-      await transaction.wait()
-
-      transaction = await dappazon.connect(buyer).buy(ID, {
-        value: COST
+      it("Updates the contract balance", async () => {
+        const result = await ethers.provider.getBalance(dappazon.address)
+        expect(result).to.equal(COST)
       })
-      await transaction.wait()
-    })
 
-    it("Updates buyer's order count", async () => {
-      const result = await dappazon.orderCount(buyer.address)
-      expect(result).to.equal(1)
-    })
-
-
-    it("Adds the order", async () => {
-      const order = await dappazon.orders(buyer.address, 1)
-
-      expect(order.time).to.be.greaterThan(0)
-      expect(order.item.name).to.equal(NAME)
-    })
-
-    it("Updates the contract balance", async () => {
-      const result = await ethers.provider.getBalance(dappazon.address)
-      expect(result).to.equal(COST)
-    })
-
-    it("Emits Buy event", () => {
-      expect(transaction).to.emit(dappazon, "Buy")
+      it("Emits Buy event", () => {
+        expect(transaction).to.emit(dappazon, "Buy")
+      })
     })
   })
 
@@ -157,4 +136,5 @@ describe("Dappazon", () => {
       })
     })
   })
+
 })

@@ -64,7 +64,6 @@ describe("Dappazon", () => {
     })
   })
 
-
   describe("Buying", () => {
     let transaction
 
@@ -102,31 +101,38 @@ describe("Dappazon", () => {
   })
 
   describe("Withdrawing", () => {
-    let balanceBefore
+    describe("Success", async () => {
+      let balanceBefore
 
-    beforeEach(async () => {
-      let transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
-      await transaction.wait()
+      beforeEach(async () => {
+        let transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
+        await transaction.wait()
 
-      transaction = await dappazon.connect(buyer).buy(ID, {
-        value: COST
+        transaction = await dappazon.connect(buyer).buy(ID, {
+          value: COST
+        })
+        await transaction.wait()
+
+        balanceBefore = await ethers.provider.getBalance(deployer.address)
+
+        transaction = await dappazon.connect(deployer).withdraw()
+        await transaction.wait()
       })
-      await transaction.wait()
 
-      balanceBefore = await ethers.provider.getBalance(deployer.address)
+      it('Updates the owner balance', async () => {
+        const balanceAfter = await ethers.provider.getBalance(deployer.address)
+        expect(balanceAfter).to.be.greaterThan(balanceBefore)
+      })
 
-      transaction = await dappazon.connect(deployer).withdraw()
-      await transaction.wait()
+      it('Updates the contract balance', async () => {
+        const result = await ethers.provider.getBalance(dappazon.address)
+        expect(result).to.equal(0)
+      })
     })
-
-    it('Updates the owner balance', async () => {
-      const balanceAfter = await ethers.provider.getBalance(deployer.address)
-      expect(balanceAfter).to.be.greaterThan(balanceBefore)
-    })
-
-    it('Updates the contract balance', async () => {
-      const result = await ethers.provider.getBalance(dappazon.address)
-      expect(result).to.equal(0)
+    describe("Failure", async () => {
+      it('Rejects non-owner from Withdrawing', async () => {
+        await expect(dappazon.connect(hacker).withdraw()).to.be.reverted
+      })
     })
   })
 })

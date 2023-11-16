@@ -19,10 +19,15 @@ contract Dappazon {
         Item item;
     }
 
+    struct Review {
+        uint256 rating;
+        string comment;
+    }
+
     mapping(uint256 => Item) public items;
     mapping(address => mapping(uint256 => Order)) public orders;
     mapping(address => uint256) public orderCount;
-    
+    mapping(uint256 => Review[]) public itemReviews;   
 
     event Buy(address buyer, uint256 orderId, uint256 itemId);
     event List(string name, uint256 cost, uint256 quantity);
@@ -59,7 +64,17 @@ contract Dappazon {
         items[_id] = item;
         emit List(_name, _cost, _stock);
     }
-    
+
+    function viewItem(uint256 _id) public view returns (Item memory) {
+        require(items[_id].id != 0);
+        return items[_id];
+    }
+
+    function itemReview(uint256 _id, uint256 _rating, string memory _comment) public {
+    require(bytes(_comment).length > 0 );
+    itemReviews[_id].push(Review({rating: _rating, comment: _comment}));
+}
+
     function buy(uint256 _id) public payable {
         Item memory item = items[_id];
         require(msg.value >= item.cost);

@@ -63,7 +63,54 @@ describe("Dappazon", () => {
       })
     })
   })
-  
+
+  describe("View Item", () => {
+    describe("Success", async () => {
+      it("Should return the correct item for a valid ID", async () => {
+        transaction = await dappazon.connect(deployer).list(ID, NAME, CATEGORY, IMAGE, COST, RATING, STOCK)
+        await transaction.wait()
+      })
+    })
+
+    describe("Failure", async () => {
+      it("Reverts with invalid id", async () => {
+        const invalidItemId = 100
+        await expect(dappazon.viewItem(invalidItemId)).to.be.reverted
+      })
+
+    })
+  })
+
+  describe("Item Review", () => {
+    describe("Success", async () => {
+      const itemId = 1;
+      const rating = 5;
+      const comment = "Great item!";
+
+      it("Should allow buyers to leave reviews for items", async () => {
+        await dappazon.connect(buyer).itemReview(itemId, rating, comment);
+        await transaction.wait()
+
+        const itemReviews = await dappazon.itemReviews(itemId, 0);
+
+        expect(itemId).to.equal(1);
+        expect(rating).to.equal(5);
+        expect(comment).to.equal("Great item!");
+      })
+    })
+
+    describe("Failure", async () => {
+      it("Rejects empty comment for item review", async () => {
+        const itemId = 1;
+        const rating = 4;
+        const emptyComment = "";
+
+        await expect(dappazon.itemReview(itemId, rating, emptyComment)).to.be.reverted
+      })
+
+    })
+  })
+
   describe("Buying", () => {
     describe("Success", async () => {
       let transaction
@@ -95,10 +142,11 @@ describe("Dappazon", () => {
         expect(result).to.equal(COST)
       })
 
-      it("Emits Buy event", () => {
+      it("Emits buy event", () => {
         expect(transaction).to.emit(dappazon, "Buy")
       })
     })
+
     describe("Failure", async () => {
       it('Should fail if buyer sends insufficient funds', async () => {
         const itemId = 1
@@ -109,7 +157,8 @@ describe("Dappazon", () => {
           value: insufficientFunds
         })).to.be.reverted
       })
-       it('Should fail if item is out of stock', async () => {
+
+      it('Should fail if item is out of stock', async () => {
         const itemId = 2
         const stockId = 0
         await expect(dappazon.connect(buyer).buy(itemId, {
@@ -148,11 +197,11 @@ describe("Dappazon", () => {
         expect(result).to.equal(0)
       })
     })
+
     describe("Failure", async () => {
       it('Rejects non-owner from Withdrawing', async () => {
         await expect(dappazon.connect(hacker).withdraw()).to.be.reverted
       })
     })
   })
-
 })
